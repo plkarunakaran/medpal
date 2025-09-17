@@ -1,0 +1,447 @@
+# Full-Stack Application — Plan & Starter Scaffold
+
+> Generated quickstarter: project plan, recommended stack, MVP, API spec, DB schema, folder structure, sample commands and minimal starter code snippets.
+
+---
+
+## 1) High-level overview
+
+This document presents a pragmatic plan to create a **full-stack web application**. It is intentionally opinionated to get you shipping fast; change anything you prefer.
+
+Assumptions (changeable):
+
+* Web application (single-page app) with REST or GraphQL backend
+* Users with authentication (email + password) and roles
+* PostgreSQL as primary database
+* Deploy to Vercel (frontend) + Render/Heroku/Cloud Run (backend) or Docker + cloud provider
+
+---
+
+## 2) Recommended tech stack (starter)
+
+* Frontend: **React** + **TypeScript** + **Vite** or Create React App
+
+  * UI: Tailwind CSS (utility-first) + Headless UI / shadcn components optionally
+  * State: React Query (server state) + Zustand or simple React context for local state
+* Backend: **Node.js** + **TypeScript** + **Express** (or Fastify)
+
+  * Auth: JWT + refresh tokens or NextAuth if using Next.js
+  * ORM: Prisma (with PostgreSQL)
+* Database: **PostgreSQL**
+* Dev tooling: ESLint, Prettier, Husky (pre-commit), Vitest / Jest
+* Infrastructure / Deploy: Vercel (frontend), Render / Railway / Fly.io / AWS for backend, or Docker + Cloud Run
+* CI/CD: GitHub Actions
+
+---
+
+## 3) MVP feature list (minimum viable product)
+
+1. User registration / login / logout (email + password)
+2. Basic user profile (name, avatar URL)
+3. CRUD resource (e.g., `projects` or `notes`) with list + create + edit + delete
+4. Authorization: only owners can edit/delete their items
+5. Responsive UI (mobile + desktop)
+6. Basic tests for backend routes and frontend components
+
+Stretch goals:
+
+* Social sign-in (Google/GitHub)
+* File uploads (S3)
+* Real-time updates (WebSockets / Pusher)
+* Payments (Stripe)
+
+---
+
+## 4) Minimal API spec (REST)
+
+**Auth**
+
+* `POST /api/auth/register` — body: `{ email, password, name? }` -> create user, return access token + refresh token
+* `POST /api/auth/login` — body: `{ email, password }` -> access + refresh tokens
+* `POST /api/auth/refresh` — body: `{ refreshToken }` -> new access token
+* `POST /api/auth/logout` — invalidate refresh token
+
+**Resource: items** (replace with `projects`, `notes`, etc.)
+
+* `GET /api/items` — list current user's items (supports pagination)
+* `POST /api/items` — create item
+* `GET /api/items/:id` — read
+* `PUT /api/items/:id` — update (owner only)
+* `DELETE /api/items/:id` — delete (owner only)
+
+---
+
+## 5) Database schema (Prisma / SQL)
+
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  items     Item[]
+}
+
+model Item {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+---
+
+## 6) Directory structure (suggested)
+
+```
+/my-app
+├─ /client        # React + TypeScript Vite app
+│  ├─ src/
+│  ├─ index.html
+│  └─ package.json
+├─ /server        # Node + TypeScript + Express
+│  ├─ src/
+│  │  ├─ controllers/
+│  │  ├─ middlewares/
+│  │  ├─ routes/
+│  │  ├─ services/
+│  │  └─ index.ts
+│  └─ package.json
+├─ docker-compose.yml
+└─ README.md
+```
+
+---
+
+## 7) Starter commands (local dev)
+
+```bash
+# client
+cd client
+npm create vite@latest . --template react-ts
+npm install
+npm run dev
+
+# server
+cd server
+npm init -y
+npm install express prisma @prisma/client bcrypt jsonwebtoken cors
+npm install -D typescript ts-node-dev @types/express @types/node
+npx prisma init
+```
+
+---
+
+## 8) Minimal starter code snippets
+
+### Backend — `src/index.ts` (Express + TypeScript minimal)
+
+```ts
+import express from 'express'
+import cors from 'cors'
+
+const app = express()
+app.use(cors())
+app.use(express.json())
+
+app.get('/api/health', (_req, res) => res.json({ ok: true }))
+
+app.listen(4000, () => console.log('Server listening on http://localhost:4000'))
+```
+
+### Frontend — `src/main.tsx` (Vite + React minimal)
+
+```tsx
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App'
+import './index.css'
+
+createRoot(document.getElementById('root')!).render(<App />)
+```
+
+---
+
+## 9) Auth basics
+
+* Hash passwords with `bcrypt` when storing.
+* Use short-lived JWT access tokens and longer-lived refresh tokens stored in httpOnly cookies.
+* Protect routes with an `authMiddleware` that verifies JWT and attaches `req.user`.
+
+---
+
+## 10) Testing & CI
+
+* Unit tests: Vitest (frontend), Jest or Vitest (backend)
+* Integration tests: Supertest for API routes
+* Add GitHub Actions workflow: run lint → tests → build → deploy (on merges to main)
+
+---
+
+## 11) Deployment notes
+
+* Frontend: Vercel or Netlify — connect GitHub repo, auto-deploy on push
+* Backend: Render/Fly/Railway or Docker to Cloud Run. Protect env vars (DATABASE\_URL, JWT\_SECRET)
+* Use managed Postgres (Supabase, Neon, Railway) for quick setup
+
+---
+
+## 12) Security checklist
+
+* Use HTTPS in production
+* Rate limit auth endpoints
+* Validate + sanitize inputs
+* Store secrets in environment variables
+* Use CSP headers and secure cookies
+
+---
+
+## 13) Next steps I can do right away (pick one):
+
+* generate a full Git repo scaffold (client + server) with working auth + sample CRUD endpoints
+* generate only the backend (Express + Prisma + auth + tests)
+* generate only the frontend (React + auth UI + items UI)
+* produce Dockerfiles and GitHub Actions workflows
+* sketch UI pages (wireframes) as plaintext + Tailwind components
+
+---
+
+### Notes
+
+If you want specific features (payments, file upload, multi-tenant, admin panel, analytics), I already included placeholders — tell me which one to prioritize and I will generate code for it next.
+
+---
+
+# Project: MedPal — Personal Health & Medicine Tracker
+
+**Problem statement:**
+People forget medicines, miss doctor follow-ups, or struggle managing health reports — especially caregivers of elderly relatives. MedPal helps users track medications, appointments, reports, and share essentials with family and emergency contacts.
+
+## Product features (from your brief)
+
+1. **Smart Medicine Reminders** — visual pill cards with colors/shapes matching real meds, recurring schedules, snooze and adherence tracking.
+2. **Doctor Visit Log** — appointments, prescriptions, lab reports, attachments, and follow-up reminders.
+3. **Family Health Dashboard** — share selected logs with family members; role-based access (view / manage).
+4. **Emergency SOS Card** — one tap sends allergies, medical history, medications, and live location to a designated hospital contact or caregiver.
+5. **Wearable Integration (optional)** — ingest heart rate, steps, BP, SpO2 from smartwatch; display trends and alerts.
+
+---
+
+## Prioritized MVP (what to build first)
+
+1. User auth (email + password) + profile (name, DOB, primary contact)
+2. Medication CRUD + visual pill cards + scheduled reminders (local push + email) with adherence tracking
+3. Appointments CRUD + upload reports (PDF/image)
+4. Family sharing: invite family member with role (Viewer / Manager)
+5. Emergency SOS card: store emergency contacts + send preformatted SMS/email with summary + location (stubbed for web)
+6. Basic responsive UI for mobile-first experience
+
+Stretch (post-MVP): wearable sync, two-way calendar integration, SMS gateway for reminders, advanced analytics.
+
+---
+
+## Core data model (concise)
+
+```prisma
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String?
+  dob        DateTime?
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  members    FamilyShare[]
+  medications Medication[]
+  appointments Appointment[]
+  emergencyContacts EmergencyContact[]
+}
+
+model Medication {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  brand        String?
+  form         String?    // tablet, capsule, syrup
+  color        String?    // for pill card
+  shape        String?    // circle, oval
+  dosage       String
+  schedule     Json       // CRON-like or structured schedule
+  startDate    DateTime?
+  endDate      DateTime?
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model ReminderLog {
+  id          String   @id @default(cuid())
+  medicationId String
+  userId      String
+  scheduledAt DateTime
+  takenAt     DateTime?
+  status      String   // scheduled | taken | missed | snoozed
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  userId      String
+  doctorName  String?
+  clinic      String?
+  datetime    DateTime
+  notes       String?
+  attachments Json?
+  createdAt   DateTime @default(now())
+}
+
+model FamilyShare {
+  id        String @id @default(cuid())
+  ownerId   String
+  memberId  String
+  role      String // viewer | manager
+  createdAt DateTime @default(now())
+}
+
+model EmergencyContact {
+  id        String @id @default(cuid())
+  userId    String
+  name      String
+  relation  String?
+  phone     String
+  email     String?
+  createdAt DateTime @default(now())
+}
+
+model WearableDatum {
+  id        String @id @default(cuid())
+  userId    String
+  type      String // heart_rate, steps, bp
+  value     Json
+  recordedAt DateTime
+}
+```
+
+---
+
+## API endpoints (high-level)
+
+**Auth**
+
+* `POST /api/auth/register`
+* `POST /api/auth/login`
+* `POST /api/auth/refresh`
+* `POST /api/auth/logout`
+
+**Medications & reminders**
+
+* `GET /api/medications` — list
+* `POST /api/medications` — create
+* `PUT /api/medications/:id` — update
+* `DELETE /api/medications/:id` — delete
+* `GET /api/reminders/upcoming` — next reminders
+* `POST /api/reminders/:id/mark-taken` — mark as taken
+
+**Appointments & reports**
+
+* `GET /api/appointments`
+* `POST /api/appointments`
+* `POST /api/appointments/:id/attachments` — upload report
+
+**Family sharing**
+
+* `POST /api/family/invite` — invite by email, generates token
+* `POST /api/family/accept` — accept invite
+* `GET /api/family/members`
+
+**Emergency SOS**
+
+* `GET /api/emergency/card` — export summary
+* `POST /api/emergency/send` — triggers SMS/email with summary + location (requires gateway or native mobile integration)
+
+**Wearable (optional)**
+
+* `POST /api/wearable/push` — ingest data from device or integration service
+* `GET /api/wearable/summary` — trends
+
+---
+
+## UX pages (priority)
+
+* Onboarding (profile + emergency contact) — mobile-first
+* Home / Dashboard (next meds + next appointment + quick SOS)
+* Medications (list, search, visual pill cards) + pill detail + schedule editor
+* Reminder timeline (calendar / list of taken / missed)
+* Appointments & Reports (upload/download)
+* Family Dashboard (switch profiles, accept invites)
+* Settings (notifications, data export, delete account)
+* Dev-only: Admin panel for support & invite management
+
+---
+
+## Emergency SOS flow (implementation notes)
+
+* Store a concise emergency summary for each user (allergies, meds, chronic conditions, blood type).
+* On SOS trigger (mobile): get GPS location (mobile permissions required), attach last-known vitals (if available), and send to selected contact(s).
+* Delivery options:
+
+  * Native mobile app: use push notifications + SMS + share intent to call app/number.
+  * Web: send email + SMS via gateway (Twilio), plus show a prominently printable/QR summary.
+* Security: require confirmation (double-tap) to avoid false alarms; log SOS events with timestamps and responders.
+
+---
+
+## Privacy, security & compliance considerations
+
+* Encrypt data at rest (managed DB) and in transit (HTTPS).
+* Minimise PII in logs; redact where possible.
+* Provide data export & delete (GDPR-friendly flows).
+* Use consent screens for sharing health data with family and third-party wearables.
+* Consider HIPAA / regional healthcare regulations if you plan to store/transfer PHI — consult a lawyer before production.
+
+---
+
+## Wearable integration (options & strategy)
+
+* Phase 1 (optional MVP): manual CSV/JSON import and manual push from smartwatch companion app.
+* Phase 2: integrate with platform APIs:
+
+  * Apple Health / HealthKit (iOS) — through a native iOS app.
+  * Google Fit (Android) — through native Android app or OAuth.
+  * Partner APIs (Fitbit, Garmin) — OAuth + webhooks.
+* Use a sync service (server-side) to normalize events and store snapshots for trends.
+
+---
+
+## Notifications & reminders
+
+* Short-term: use local device scheduling for push (mobile) and email reminders for web users.
+* Longer-term: integrate SMS gateway for critical reminders (optional paid feature).
+* Allow snooze options and adherence analytics (streaks, missed counts).
+
+---
+
+## Deployment & infra notes
+
+* Mobile-first UX — start with React Native or React + Capacitor if you want a hybrid app that can use device features (location, push, local notifications).
+* Backend: Node + TypeScript + Express/Fastify + Prisma + Postgres.
+* Use managed DB (Supabase/Neon/Railway) for speed. Store attachments in S3-compatible storage.
+* For production with PHI, use HIPAA-compliant cloud setup if required.
+
+---
+
+## Next steps (pick one and I will generate code/files):
+
+1. Generate a full repository scaffold (mobile-capable) — React (Vite) + Express + Prisma — includes auth, medication CRUD, reminders, family invites, SOS stub.
+2. Generate backend only (Express + Prisma) with full schema, auth, medication endpoints, and SOS endpoints (stubs for SMS/location).
+3. Generate frontend only (React + Tailwind) with screens for meds, reminders, appointments and SOS UI (no native push).
+4. Provide a native-mobile plan (React Native / Capacitor) with notification and GPS implementation details.
+5. Produce Dockerfiles, GitHub Actions, and deployment guides.
+6. Produce a privacy & HIPAA readiness checklist and language for consent screens.
+
+---
+
+*End of scaffold.*
